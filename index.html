@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกความประทับใจ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pink': {
+                            50: '#fdf2f8',
+                            100: '#fce7f3',
+                            200: '#fbcfe8',
+                            300: '#f9a8d4',
+                            400: '#f472b6',
+                            500: '#ec4899',
+                            600: '#db2777',
+                            700: '#be185d',
+                            800: '#9d174d',
+                            900: '#831843'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Kanit', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%); }
+        .card-shadow { box-shadow: 0 10px 25px rgba(236, 72, 153, 0.1); }
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ec4899;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <div class="text-center mb-8 fade-in">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-pink-500 rounded-full mb-4">
+                <i class="fas fa-heart text-white text-2xl"></i>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-bold text-pink-800 mb-2">ระบบบันทึกความประทับใจ</h1>
+            <p class="text-pink-600">บันทึกและติดตามความประทับใจของทีมงาน</p>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex justify-center mb-8">
+            <div class="bg-white rounded-full p-1 card-shadow">
+                <button id="recordTab" class="px-6 py-3 rounded-full font-medium transition-all duration-300 bg-pink-500 text-white">
+                    <i class="fas fa-edit mr-2"></i>บันทึกข้อมูล
+                </button>
+                <button id="summaryTab" class="px-6 py-3 rounded-full font-medium transition-all duration-300 text-pink-600 hover:bg-pink-50">
+                    <i class="fas fa-chart-bar mr-2"></i>สรุปผลคะแนน
+                </button>
+            </div>
+        </div>
+
+        <!-- Record Form -->
+        <div id="recordSection" class="fade-in">
+            <div class="bg-white rounded-2xl p-6 md:p-8 card-shadow">
+                <form id="impressionForm">
+                    <!-- Date Input -->
+                    <div class="mb-6">
+                        <label class="block text-pink-800 font-medium mb-3">
+                            <i class="fas fa-calendar-alt mr-2"></i>วันที่
+                        </label>
+                        <input type="date" id="dateInput" class="w-full p-4 border-2 border-pink-200 rounded-xl focus:border-pink-500 focus:outline-none transition-colors" required>
+                    </div>
+
+                    <!-- Names Selection -->
+                    <div class="mb-6">
+                        <label class="block text-pink-800 font-medium mb-3">
+                            <i class="fas fa-users mr-2"></i>รายชื่อ (เลือกได้หลายคน)
+                        </label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="namesList">
+                            <!-- Names will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Scores Section -->
+                    <div id="scoresSection" class="mb-6 hidden">
+                        <label class="block text-pink-800 font-medium mb-3">
+                            <i class="fas fa-star mr-2"></i>คะแนนความประทับใจ
+                        </label>
+                        <div id="scoreInputs" class="space-y-4">
+                            <!-- Score inputs will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Message Input -->
+                    <div class="mb-6">
+                        <label class="block text-pink-800 font-medium mb-3">
+                            <i class="fas fa-comment mr-2"></i>มีอะไรอยากจะบอกเรา
+                        </label>
+                        <textarea id="messageInput" rows="4" class="w-full p-4 border-2 border-pink-200 rounded-xl focus:border-pink-500 focus:outline-none transition-colors resize-none" placeholder="แบ่งปันความคิดเห็นของคุณ..."></textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="submitBtn" class="w-full bg-pink-500 hover:bg-pink-600 text-white font-medium py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span id="submitText">
+                            <i class="fas fa-save mr-2"></i>บันทึกข้อมูล
+                        </span>
+                        <span id="loadingText" class="hidden">
+                            <div class="loading-spinner inline-block mr-2"></div>กำลังบันทึก...
+                        </span>
+                    </button>
+                </form>
+
+                <!-- Status Messages -->
+                <div id="statusMessage" class="mt-4 p-4 rounded-xl hidden"></div>
+            </div>
+        </div>
+
+        <!-- Summary Section -->
+        <div id="summarySection" class="hidden fade-in">
+            <div class="bg-white rounded-2xl p-6 md:p-8 card-shadow">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-pink-800 mb-6">
+                        <i class="fas fa-chart-line mr-2"></i>สรุปผลคะแนน
+                    </h2>
+                    
+                    <!-- Quick Filter Buttons -->
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <button id="showDateSelectBtn" class="px-4 py-2 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 transition-colors">
+                            <i class="fas fa-calendar-day mr-1"></i>สรุปผลคะแนน (ระบุวัน)
+                        </button>
+                        <button id="showMonthSelectBtn" class="px-4 py-2 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 transition-colors">
+                            <i class="fas fa-calendar-alt mr-1"></i>สรุปผลคะแนน (ระบุเดือน)
+                        </button>
+                        <button id="showMonthRangeBtn" class="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors">
+                            <i class="fas fa-calendar-week mr-1"></i>สรุปผลคะแนน (ระบุช่วงเดือน)
+                        </button>
+                    </div>
+
+                    <!-- Date Selection (Hidden by default) -->
+                    <div id="dateSelectSection" class="bg-pink-50 p-6 rounded-xl mb-6 hidden">
+                        <h3 class="text-lg font-medium text-pink-800 mb-4">
+                            <i class="fas fa-calendar-day mr-2"></i>เลือกวันที่
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-pink-700 font-medium mb-2">เลือกวันที่</label>
+                                <input type="date" id="singleDateInput" class="w-full p-3 border-2 border-pink-200 rounded-lg focus:border-pink-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="loadSingleDateBtn" class="px-6 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors">
+                                <i class="fas fa-search mr-2"></i>ดูข้อมูลวันนี้
+                            </button>
+                            <button id="hideDateSelectBtn" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                                <i class="fas fa-times mr-2"></i>ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Single Month Selection (Hidden by default) -->
+                    <div id="monthSelectSection" class="bg-pink-50 p-6 rounded-xl mb-6 hidden">
+                        <h3 class="text-lg font-medium text-pink-800 mb-4">
+                            <i class="fas fa-calendar-alt mr-2"></i>เลือกเดือน
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-pink-700 font-medium mb-2">เลือกเดือน</label>
+                                <input type="month" id="singleMonthInput" class="w-full p-3 border-2 border-pink-200 rounded-lg focus:border-pink-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="loadSingleMonthBtn" class="px-6 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors">
+                                <i class="fas fa-search mr-2"></i>ดูข้อมูลเดือนนี้
+                            </button>
+                            <button id="hideMonthSelectBtn" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                                <i class="fas fa-times mr-2"></i>ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Month Range Selection (Hidden by default) -->
+                    <div id="monthRangeSection" class="bg-pink-50 p-6 rounded-xl mb-6 hidden">
+                        <h3 class="text-lg font-medium text-pink-800 mb-4">
+                            <i class="fas fa-calendar-week mr-2"></i>เลือกช่วงเดือน
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-pink-700 font-medium mb-2">เดือนเริ่มต้น</label>
+                                <input type="month" id="startMonthInput" class="w-full p-3 border-2 border-pink-200 rounded-lg focus:border-pink-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-pink-700 font-medium mb-2">เดือนสิ้นสุด</label>
+                                <input type="month" id="endMonthInput" class="w-full p-3 border-2 border-pink-200 rounded-lg focus:border-pink-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="loadMonthRangeBtn" class="px-6 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors">
+                                <i class="fas fa-search mr-2"></i>ดูข้อมูลช่วงเดือน
+                            </button>
+                            <button id="hideMonthRangeBtn" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                                <i class="fas fa-times mr-2"></i>ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+
+
+                </div>
+
+                <div id="summaryContent">
+                    <div class="text-center py-8 text-pink-600">
+                        <i class="fas fa-chart-bar text-4xl mb-4"></i>
+                        <p>เลือกช่วงเวลาที่ต้องการดูข้อมูล</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzeOUxYc48NM4HEWnJ7Uu91K5vDfc464jw92JxuC-aeVCtirwyemZW6tFRh3HJBrPAA/exec';
+        const SHEET_ID = '10ONqX4tQFsSEmzt_g4SYQBpQSrX5OXIU5lhbRbHZBfw';
+        
+        const names = [
+            'เตือนใจ', 'วารีรัตน์', 'สุพัตรา', 'ฐิติมา', 'อุมาพร', 'เอกธนัช', 
+            'จิรพงศ์', 'นิสา', 'อัจฉรา', 'ไพโรจน์', 'อรรถพล', 'มณฑา'
+        ];
+
+        // DOM Elements
+        const recordTab = document.getElementById('recordTab');
+        const summaryTab = document.getElementById('summaryTab');
+        const recordSection = document.getElementById('recordSection');
+        const summarySection = document.getElementById('summarySection');
+        const namesList = document.getElementById('namesList');
+        const scoresSection = document.getElementById('scoresSection');
+        const scoreInputs = document.getElementById('scoreInputs');
+        const impressionForm = document.getElementById('impressionForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const submitText = document.getElementById('submitText');
+        const loadingText = document.getElementById('loadingText');
+        const statusMessage = document.getElementById('statusMessage');
+        const dateInput = document.getElementById('dateInput');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set today's date
+            dateInput.valueAsDate = new Date();
+            
+            // Generate name checkboxes
+            generateNameCheckboxes();
+            
+            // Setup event listeners
+            setupEventListeners();
+        });
+
+        function generateNameCheckboxes() {
+            namesList.innerHTML = '';
+            names.forEach(name => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center';
+                div.innerHTML = `
+                    <label class="flex items-center cursor-pointer p-3 rounded-lg hover:bg-pink-50 transition-colors w-full">
+                        <input type="checkbox" name="selectedNames" value="${name}" class="w-5 h-5 text-pink-500 border-2 border-pink-300 rounded focus:ring-pink-500 mr-3">
+                        <span class="text-pink-800 font-medium">${name}</span>
+                    </label>
+                `;
+                namesList.appendChild(div);
+            });
+        }
+
+        function setupEventListeners() {
+            // Tab switching
+            recordTab.addEventListener('click', () => switchTab('record'));
+            summaryTab.addEventListener('click', () => switchTab('summary'));
+
+            // Name selection
+            document.addEventListener('change', function(e) {
+                if (e.target.name === 'selectedNames') {
+                    updateScoreInputs();
+                }
+            });
+
+            // Form submission
+            impressionForm.addEventListener('submit', handleFormSubmit);
+
+            // Date selection buttons
+            document.getElementById('showDateSelectBtn').addEventListener('click', showDateSelectSection);
+            document.getElementById('hideDateSelectBtn').addEventListener('click', hideDateSelectSection);
+            document.getElementById('loadSingleDateBtn').addEventListener('click', loadSingleDate);
+            
+            // Single month buttons
+            document.getElementById('showMonthSelectBtn').addEventListener('click', showMonthSelectSection);
+            document.getElementById('hideMonthSelectBtn').addEventListener('click', hideMonthSelectSection);
+            document.getElementById('loadSingleMonthBtn').addEventListener('click', loadSingleMonth);
+            
+            // Month range buttons
+            document.getElementById('showMonthRangeBtn').addEventListener('click', showMonthRangeSection);
+            document.getElementById('hideMonthRangeBtn').addEventListener('click', hideMonthRangeSection);
+            document.getElementById('loadMonthRangeBtn').addEventListener('click', loadMonthRange);
+
+        }
+
+        function switchTab(tab) {
+            if (tab === 'record') {
+                recordTab.className = 'px-6 py-3 rounded-full font-medium transition-all duration-300 bg-pink-500 text-white';
+                summaryTab.className = 'px-6 py-3 rounded-full font-medium transition-all duration-300 text-pink-600 hover:bg-pink-50';
+                recordSection.classList.remove('hidden');
+                summarySection.classList.add('hidden');
+            } else {
+                summaryTab.className = 'px-6 py-3 rounded-full font-medium transition-all duration-300 bg-pink-500 text-white';
+                recordTab.className = 'px-6 py-3 rounded-full font-medium transition-all duration-300 text-pink-600 hover:bg-pink-50';
+                summarySection.classList.remove('hidden');
+                recordSection.classList.add('hidden');
+            }
+        }
+
+        function updateScoreInputs() {
+            const selectedNames = Array.from(document.querySelectorAll('input[name="selectedNames"]:checked')).map(cb => cb.value);
+            
+            if (selectedNames.length > 0) {
+                scoresSection.classList.remove('hidden');
+                scoreInputs.innerHTML = '';
+                
+                selectedNames.forEach(name => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between p-4 bg-pink-50 rounded-lg';
+                    div.innerHTML = `
+                        <label class="text-pink-800 font-medium flex-1">${name}</label>
+                        <input type="number" name="score_${name}" min="0" class="w-24 p-2 border-2 border-pink-200 rounded-lg focus:border-pink-500 focus:outline-none text-center" placeholder="คะแนน" required>
+                    `;
+                    scoreInputs.appendChild(div);
+                });
+            } else {
+                scoresSection.classList.add('hidden');
+            }
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const selectedNames = Array.from(document.querySelectorAll('input[name="selectedNames"]:checked')).map(cb => cb.value);
+            
+            if (selectedNames.length === 0) {
+                showStatus('กรุณาเลือกรายชื่ออย่างน้อย 1 คน', 'error');
+                return;
+            }
+
+            // Prepare individual entries for each selected person
+            const entries = [];
+            const date = dateInput.value;
+            const message = document.getElementById('messageInput').value;
+            
+            selectedNames.forEach(name => {
+                const scoreInput = document.querySelector(`input[name="score_${name}"]`);
+                const score = scoreInput && scoreInput.value ? parseInt(scoreInput.value) : 0;
+                
+                entries.push({
+                    date: date,
+                    name: name,
+                    score: score,
+                    message: message
+                });
+            });
+
+            // Show loading state
+            setLoadingState(true);
+
+            try {
+                const formData = new FormData();
+                formData.append('action', 'submit');
+                formData.append('entries', JSON.stringify(entries));
+
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.text();
+                
+                if (response.ok) {
+                    showStatus('บันทึกข้อมูลสำเร็จ!', 'success');
+                    impressionForm.reset();
+                    dateInput.valueAsDate = new Date();
+                    scoresSection.classList.add('hidden');
+                    updateScoreInputs();
+                } else {
+                    throw new Error('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง', 'error');
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        async function loadSummary(period, customParams = {}) {
+            const summaryContent = document.getElementById('summaryContent');
+            summaryContent.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="loading-spinner mx-auto mb-4"></div>
+                    <p class="text-pink-600">กำลังโหลดข้อมูล...</p>
+                </div>
+            `;
+
+            try {
+                const formData = new FormData();
+                formData.append('action', 'getSummary');
+                formData.append('period', period);
+                
+                // Add custom parameters for date filtering
+                if (customParams.startDate) formData.append('startDate', customParams.startDate);
+                if (customParams.endDate) formData.append('endDate', customParams.endDate);
+                if (customParams.singleDate) formData.append('singleDate', customParams.singleDate);
+                if (customParams.monthYear) formData.append('monthYear', customParams.monthYear);
+
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    displaySummary(data.data, period, customParams);
+                } else {
+                    throw new Error(data.message || 'ไม่สามารถโหลดข้อมูลได้');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                summaryContent.innerHTML = `
+                    <div class="text-center py-8 text-red-600">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                        <p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
+                        <p class="text-sm mt-2">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Date selection functions
+        function showDateSelectSection() {
+            document.getElementById('dateSelectSection').classList.remove('hidden');
+            // Set today as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('singleDateInput').value = today;
+        }
+
+        function hideDateSelectSection() {
+            document.getElementById('dateSelectSection').classList.add('hidden');
+        }
+
+        function loadSingleDate() {
+            const selectedDate = document.getElementById('singleDateInput').value;
+            
+            if (!selectedDate) {
+                showStatus('กรุณาเลือกวันที่', 'error');
+                return;
+            }
+            
+            loadSummary('custom', { 
+                singleDate: selectedDate,
+                startDate: selectedDate,
+                endDate: selectedDate
+            });
+            hideDateSelectSection();
+        }
+
+        // Single month section functions
+        function showMonthSelectSection() {
+            document.getElementById('monthSelectSection').classList.remove('hidden');
+            // Set current month as default
+            const now = new Date();
+            const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('singleMonthInput').value = currentMonth;
+        }
+
+        function hideMonthSelectSection() {
+            document.getElementById('monthSelectSection').classList.add('hidden');
+        }
+
+        function loadSingleMonth() {
+            const selectedMonth = document.getElementById('singleMonthInput').value;
+            
+            if (!selectedMonth) {
+                showStatus('กรุณาเลือกเดือน', 'error');
+                return;
+            }
+            
+            // Convert month to date range for proper filtering
+            const startDate = selectedMonth + '-01'; // First day of month
+            const endMonthDate = new Date(selectedMonth + '-01');
+            endMonthDate.setMonth(endMonthDate.getMonth() + 1);
+            endMonthDate.setDate(0); // Last day of month
+            const endDate = endMonthDate.toISOString().split('T')[0];
+            
+            console.log('Single month search:', { selectedMonth, startDate, endDate });
+            
+            loadSummary('custom', { 
+                startDate, 
+                endDate, 
+                monthYear: selectedMonth,
+                isSingleMonth: true 
+            });
+            hideMonthSelectSection();
+        }
+
+        // Month range section functions
+        function showMonthRangeSection() {
+            document.getElementById('monthRangeSection').classList.remove('hidden');
+        }
+
+        function hideMonthRangeSection() {
+            document.getElementById('monthRangeSection').classList.add('hidden');
+        }
+
+        function loadMonthRange() {
+            const startMonth = document.getElementById('startMonthInput').value;
+            const endMonth = document.getElementById('endMonthInput').value;
+            
+            if (!startMonth || !endMonth) {
+                showStatus('กรุณาเลือกเดือนเริ่มต้นและเดือนสิ้นสุด', 'error');
+                return;
+            }
+            
+            if (new Date(startMonth) > new Date(endMonth)) {
+                showStatus('เดือนเริ่มต้นต้องไม่เกินเดือนสิ้นสุด', 'error');
+                return;
+            }
+            
+            // Convert month inputs to date range
+            const startDate = startMonth + '-01'; // First day of start month
+            const endMonthDate = new Date(endMonth + '-01');
+            endMonthDate.setMonth(endMonthDate.getMonth() + 1);
+            endMonthDate.setDate(0); // Last day of end month
+            const endDate = endMonthDate.toISOString().split('T')[0];
+            
+            console.log('Month range search:', { startMonth, endMonth, startDate, endDate });
+            
+            loadSummary('monthRange', { startDate, endDate, isMonthRange: true, startMonth, endMonth });
+            hideMonthRangeSection();
+        }
+
+        function displaySummary(data, period, customParams = {}) {
+            const summaryContent = document.getElementById('summaryContent');
+            
+            if (!data || data.length === 0) {
+                summaryContent.innerHTML = `
+                    <div class="text-center py-8 text-pink-600">
+                        <i class="fas fa-inbox text-4xl mb-4"></i>
+                        <p>ไม่มีข้อมูลในช่วงเวลาที่เลือก</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Calculate total scores and rankings
+            const personTotals = {};
+            data.forEach(record => {
+                if (record.scores) {
+                    Object.entries(record.scores).forEach(([name, score]) => {
+                        if (!personTotals[name]) {
+                            personTotals[name] = 0;
+                        }
+                        personTotals[name] += parseInt(score);
+                    });
+                }
+            });
+
+            // Sort by total scores for ranking
+            const rankings = Object.entries(personTotals)
+                .sort(([,a], [,b]) => b - a)
+                .map(([name, total], index) => ({ name, total, rank: index + 1 }));
+
+            // Generate period description
+            let periodDescription = '';
+            if (period === 'custom') {
+                if (customParams.singleDate) {
+                    periodDescription = `วันที่ ${formatDate(customParams.singleDate)}`;
+                } else if (customParams.isSingleMonth && customParams.monthYear) {
+                    const [year, month] = customParams.monthYear.split('-');
+                    const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 
+                                      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+                    periodDescription = `${monthNames[parseInt(month) - 1]} ${parseInt(year) + 543}`;
+                } else if (customParams.isMonthRange && customParams.startMonth && customParams.endMonth) {
+                    const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 
+                                      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+                    const [startYear, startMonthNum] = customParams.startMonth.split('-');
+                    const [endYear, endMonthNum] = customParams.endMonth.split('-');
+                    const startMonthName = monthNames[parseInt(startMonthNum) - 1];
+                    const endMonthName = monthNames[parseInt(endMonthNum) - 1];
+                    const startYearThai = parseInt(startYear) + 543;
+                    const endYearThai = parseInt(endYear) + 543;
+                    
+                    if (customParams.startMonth === customParams.endMonth) {
+                        periodDescription = `${startMonthName} ${startYearThai}`;
+                    } else if (startYear === endYear) {
+                        periodDescription = `${startMonthName} - ${endMonthName} ${startYearThai}`;
+                    } else {
+                        periodDescription = `${startMonthName} ${startYearThai} - ${endMonthName} ${endYearThai}`;
+                    }
+                } else if (customParams.startDate && customParams.endDate) {
+                    if (customParams.startDate === customParams.endDate) {
+                        periodDescription = `วันที่ ${formatDate(customParams.startDate)}`;
+                    } else {
+                        periodDescription = `${formatDate(customParams.startDate)} - ${formatDate(customParams.endDate)}`;
+                    }
+                } else if (customParams.monthYear) {
+                    const [year, month] = customParams.monthYear.split('-');
+                    const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 
+                                      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+                    periodDescription = `${monthNames[parseInt(month) - 1]} ${parseInt(year) + 543}`;
+                }
+            }
+            
+            let html = `
+                ${periodDescription ? `
+                    <div class="bg-gradient-to-r from-pink-500 to-pink-600 text-white p-4 rounded-xl mb-6 text-center">
+                        <h3 class="text-lg font-medium">
+                            <i class="fas fa-calendar-check mr-2"></i>สรุปผลคะแนน: ${periodDescription}
+                        </h3>
+                    </div>
+                ` : ''}
+                
+                <!-- Top 3 Rankings -->
+                <div class="bg-gradient-to-r from-yellow-100 to-orange-100 p-6 rounded-xl mb-6">
+                    <h3 class="text-xl font-bold text-orange-800 mb-4">
+                        <i class="fas fa-trophy mr-2"></i>สรุปอันดับคะแนน
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            `;
+
+            // Display top 3 rankings
+            const top3 = rankings.slice(0, 3);
+            const rankColors = ['from-yellow-400 to-yellow-500', 'from-gray-300 to-gray-400', 'from-orange-400 to-orange-500'];
+            const rankIcons = ['fas fa-crown', 'fas fa-medal', 'fas fa-award'];
+
+            top3.forEach((person, index) => {
+                html += `
+                    <div class="bg-gradient-to-r ${rankColors[index]} text-white p-6 rounded-xl text-center transform hover:scale-105 transition-transform">
+                        <div class="text-3xl mb-2">
+                            <i class="${rankIcons[index]}"></i>
+                        </div>
+                        <div class="text-2xl font-bold mb-1">อันดับ ${person.rank}</div>
+                        <div class="text-lg font-medium mb-2">${person.name}</div>
+                        <div class="text-xl font-bold">${person.total} คะแนน</div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+
+                <!-- Total Scores Summary -->
+                <div class="bg-gradient-to-r from-pink-100 to-pink-200 p-6 rounded-xl mb-6">
+                    <h3 class="text-xl font-bold text-pink-800 mb-4">
+                        <i class="fas fa-users mr-2"></i>รายชื่อและจำนวนคะแนนทั้งหมด
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            `;
+
+            // Display all person totals
+            rankings.forEach(person => {
+                html += `
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-pink-800 font-medium">${person.name}</span>
+                            <span class="font-bold text-pink-600 text-lg">${person.total} คะแนน</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+
+                <!-- Messages Summary -->
+                <div class="bg-gradient-to-r from-blue-100 to-indigo-200 p-6 rounded-xl mb-6">
+                    <h3 class="text-xl font-bold text-indigo-800 mb-4">
+                        <i class="fas fa-comments mr-2"></i>สรุปข้อมูล Message รวมทั้งหมด
+                    </h3>
+            `;
+
+            // Collect all messages
+            const allMessages = [];
+            data.forEach(record => {
+                if (record.message && record.message.trim()) {
+                    allMessages.push({
+                        date: record.date,
+                        message: record.message.trim()
+                    });
+                }
+            });
+
+            if (allMessages.length > 0) {
+                html += `
+                    <div class="bg-white p-4 rounded-lg mb-4">
+                        <div class="text-indigo-700 font-medium mb-2">
+                            <i class="fas fa-chart-pie mr-2"></i>สถิติ Message
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                            <div class="bg-indigo-50 p-3 rounded-lg">
+                                <div class="text-2xl font-bold text-indigo-600">${allMessages.length}</div>
+                                <div class="text-sm text-indigo-700">จำนวน Message ทั้งหมด</div>
+                            </div>
+                            <div class="bg-indigo-50 p-3 rounded-lg">
+                                <div class="text-2xl font-bold text-indigo-600">${data.length}</div>
+                                <div class="text-sm text-indigo-700">จำนวนวันที่บันทึก</div>
+                            </div>
+                            <div class="bg-indigo-50 p-3 rounded-lg">
+                                <div class="text-2xl font-bold text-indigo-600">${Math.round((allMessages.length / data.length) * 100)}%</div>
+                                <div class="text-sm text-indigo-700">เปอร์เซ็นต์การเขียน Message</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-3 max-h-96 overflow-y-auto">
+                `;
+
+                // Display all messages chronologically (newest first)
+                allMessages.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach((item, index) => {
+                    html += `
+                        <div class="bg-white p-4 rounded-lg border-l-4 border-indigo-400 hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="text-indigo-600 font-medium text-sm">
+                                    <i class="fas fa-calendar-alt mr-1"></i>${formatDate(item.date)}
+                                </div>
+                                <div class="text-xs text-indigo-500 bg-indigo-100 px-2 py-1 rounded-full">
+                                    #${index + 1}
+                                </div>
+                            </div>
+                            <div class="text-gray-800 leading-relaxed">
+                                <i class="fas fa-quote-left text-indigo-300 mr-2"></i>${item.message}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="bg-white p-8 rounded-lg text-center">
+                        <i class="fas fa-comment-slash text-4xl text-indigo-300 mb-4"></i>
+                        <p class="text-indigo-600">ไม่มี Message ในช่วงเวลาที่เลือก</p>
+                        <p class="text-sm text-indigo-500 mt-2">ลองเขียน Message เพื่อแบ่งปันความคิดเห็นกันมากขึ้น!</p>
+                    </div>
+                `;
+            }
+
+            html += `
+                </div>
+
+                <!-- Individual Records -->
+                <div class="bg-white p-6 rounded-xl">
+                    <h3 class="text-xl font-bold text-pink-800 mb-4">
+                        <i class="fas fa-list mr-2"></i>รายละเอียดการบันทึก
+                    </h3>
+                    <div class="space-y-4">
+            `;
+
+            // Display individual records
+            data.forEach(record => {
+                html += `
+                    <div class="bg-pink-50 p-6 rounded-xl">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="text-pink-800 font-medium">
+                                <i class="fas fa-calendar mr-2"></i>${formatDate(record.date)}
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                `;
+                
+                if (record.scores) {
+                    Object.entries(record.scores).forEach(([name, score]) => {
+                        html += `
+                            <div class="flex justify-between items-center bg-white p-3 rounded-lg">
+                                <span class="text-pink-800">${name}</span>
+                                <span class="font-bold text-pink-600">${score} คะแนน</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += `
+                        </div>
+                        ${record.message ? `
+                            <div class="bg-white p-4 rounded-lg">
+                                <div class="text-pink-700 text-sm mb-2">
+                                    <i class="fas fa-comment mr-2"></i>ข้อความ
+                                </div>
+                                <div class="text-pink-800">${record.message}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            html += '</div></div>';
+            summaryContent.innerHTML = html;
+        }
+
+        function calculateStats(data) {
+            let totalRecords = data.length;
+            let totalScore = 0;
+            let scoreCount = 0;
+            let personScores = {};
+
+            data.forEach(record => {
+                if (record.scores) {
+                    Object.entries(record.scores).forEach(([name, score]) => {
+                        totalScore += score;
+                        scoreCount++;
+                        
+                        if (!personScores[name]) {
+                            personScores[name] = [];
+                        }
+                        personScores[name].push(score);
+                    });
+                }
+            });
+
+            let averageScore = scoreCount > 0 ? totalScore / scoreCount : 0;
+            
+            // Find person with highest average score
+            let topPerson = '';
+            let highestAvg = 0;
+            
+            Object.entries(personScores).forEach(([name, scores]) => {
+                const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+                if (avg > highestAvg) {
+                    highestAvg = avg;
+                    topPerson = name;
+                }
+            });
+
+            return {
+                totalRecords,
+                averageScore,
+                topPerson: topPerson || 'ไม่มีข้อมูล'
+            };
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('th-TH', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function setLoadingState(loading) {
+            submitBtn.disabled = loading;
+            if (loading) {
+                submitText.classList.add('hidden');
+                loadingText.classList.remove('hidden');
+            } else {
+                submitText.classList.remove('hidden');
+                loadingText.classList.add('hidden');
+            }
+        }
+
+        function showStatus(message, type) {
+            statusMessage.className = `mt-4 p-4 rounded-xl ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            statusMessage.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-2"></i>
+                ${message}
+            `;
+            statusMessage.classList.remove('hidden');
+            
+            setTimeout(() => {
+                statusMessage.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9586d98e661533b6',t:'MTc1MTM4MjgzMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
